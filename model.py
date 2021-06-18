@@ -463,11 +463,16 @@ class cyclegan(object):
 
         merge_A = np.concatenate([real_B, fake_A,rec_B,rec_fakeA,rec_cycle_B], axis=2)
         merge_B = np.concatenate([real_A, fake_B,rec_A,rec_fakeB,rec_cycle_A], axis=2)
-        check_folder('./{}/{:02d}'.format(sample_dir, epoch))
+#         check_folder('./{}/{:02d}'.format(sample_dir, epoch))
+#         save_images(merge_A, [self.batch_size, 1],
+#                     './{}/{:02d}/A_{:04d}.jpg'.format(sample_dir, epoch, idx))
+#         save_images(merge_B, [self.batch_size, 1],
+#                     './{}/{:02d}/B_{:04d}.jpg'.format(sample_dir, epoch, idx))
+        check_folder('{}/{:02d}'.format(sample_dir, epoch))
         save_images(merge_A, [self.batch_size, 1],
-                    './{}/{:02d}/A_{:04d}.jpg'.format(sample_dir, epoch, idx))
+                    '{}/{:02d}/A_{:04d}.jpg'.format(sample_dir, epoch, idx))
         save_images(merge_B, [self.batch_size, 1],
-                    './{}/{:02d}/B_{:04d}.jpg'.format(sample_dir, epoch, idx))
+                    '{}/{:02d}/B_{:04d}.jpg'.format(sample_dir, epoch, idx))
 
     def test(self, args):
         """Test cyclegan"""
