@@ -361,8 +361,8 @@ class cyclegan(object):
         for epoch in range(args.epoch):
 #             dataA = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/trainA'))
 #             dataB = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/trainB'))
-            dataA = glob('./datasets/{}/**/images/**/*.*'.format(self.dataset_dir + '/trainA'))
-            dataB = glob('./datasets/{}/**/images/**/*.*'.format(self.dataset_dir + '/trainB'))
+            dataA = glob('./datasets/{}/**/**/images/**/*.*'.format(self.dataset_dir + '/trainA'))
+            dataB = glob('./datasets/{}/**/**/images/**/*.*'.format(self.dataset_dir + '/trainB'))
             np.random.shuffle(dataA)
             np.random.shuffle(dataB)
             batch_idxs = min(min(len(dataA), len(dataB)), args.train_size) // self.batch_size
@@ -446,8 +446,8 @@ class cyclegan(object):
     def sample_model(self, sample_dir, epoch, idx):
 #         dataA = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/testA'))
 #         dataB = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/testB'))
-        dataA = glob('./datasets/{}/**/images/**/*.*'.format(self.dataset_dir + '/testA'))
-        dataB = glob('./datasets/{}/**/images/**/*.*'.format(self.dataset_dir + '/testB'))
+        dataA = glob('./datasets/{}/**/**/images/**/*.*'.format(self.dataset_dir + '/testA'))
+        dataB = glob('./datasets/{}/**/**/images/**/*.*'.format(self.dataset_dir + '/testB'))
         np.random.shuffle(dataA)
         np.random.shuffle(dataB)
         batch_files = list(zip(dataA[:self.batch_size], dataB[:self.batch_size]))
