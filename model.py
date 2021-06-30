@@ -3,6 +3,7 @@ from utils import *
 from ops import *
 import time
 from glob import glob
+from shutil import copyfile
 def gaussian_noise_layer(input_layer, std):
     noise = tf.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=std, dtype=tf.float32)
     return input_layer+noise
@@ -410,6 +411,7 @@ class cyclegan(object):
                 print(("Epoch: [%2d] [%4d/%4d] time: %4.4f g_loss: %4.4f gan:%4.4f adv:%4.4f adv_rec:%4.4f adv_recfake:%4.4f pix_cycle:%4.4f pix_rec:%4.4f g_percep:%4.4f cls:%4.4f g_cls:%4.4f" % (
                     epoch, idx, batch_idxs, time.time() - start_time,g_loss,gan_loss,g_adv,g_adv_rec,g_adv_recfake,g_rec_cycle,g_rec_real,percep,cls_loss,g_cls_loss)))
                 print(loss_print)
+                #import pdb;pdb.set_trace()
 
                 if np.mod(counter, args.print_freq) == 1:
                     self.sample_model(args.sample_dir, epoch, idx)
@@ -444,10 +446,8 @@ class cyclegan(object):
             return False
 
     def sample_model(self, sample_dir, epoch, idx):
-#         dataA = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/testA'))
-#         dataB = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/testB'))
-        dataA = glob('./datasets/{}/**/**/images/**/*.*'.format(self.dataset_dir + '/testA'))
-        dataB = glob('./datasets/{}/**/**/images/**/*.*'.format(self.dataset_dir + '/testB'))
+        dataA = glob('./datasets/{}/**/**/images/**/*.*'.format(self.dataset_dir + '/trainA'))
+        dataB = glob('./datasets/{}/**/**/images/**/*.*'.format(self.dataset_dir + '/trainB'))
         np.random.shuffle(dataA)
         np.random.shuffle(dataB)
         batch_files = list(zip(dataA[:self.batch_size], dataB[:self.batch_size]))
@@ -463,11 +463,6 @@ class cyclegan(object):
 
         merge_A = np.concatenate([real_B, fake_A,rec_B,rec_fakeA,rec_cycle_B], axis=2)
         merge_B = np.concatenate([real_A, fake_B,rec_A,rec_fakeB,rec_cycle_A], axis=2)
-#         check_folder('./{}/{:02d}'.format(sample_dir, epoch))
-#         save_images(merge_A, [self.batch_size, 1],
-#                     './{}/{:02d}/A_{:04d}.jpg'.format(sample_dir, epoch, idx))
-#         save_images(merge_B, [self.batch_size, 1],
-#                     './{}/{:02d}/B_{:04d}.jpg'.format(sample_dir, epoch, idx))
         check_folder('{}/{:02d}'.format(sample_dir, epoch))
         save_images(merge_A, [self.batch_size, 1],
                     '{}/{:02d}/A_{:04d}.jpg'.format(sample_dir, epoch, idx))
@@ -479,11 +474,11 @@ class cyclegan(object):
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
         if args.which_direction == 'AtoB':
-#             sample_files = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/testA'))
-            sample_files = glob('./datasets/{}/**/images/**/*.*'.format(self.dataset_dir + '/testA'))
+            #sample_files = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/testA'))
+            sample_files = glob('./datasets/{}/**/images/**/*.*'.format(self.dataset_dir + '/trainA'))
         elif args.which_direction == 'BtoA':
-#             sample_files = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/testB'))
-            sample_files = glob('./datasets/{}/**/images/**/*.*'.format(self.dataset_dir + '/testB'))
+           # sample_files = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/testB'))
+            sample_files = glob('./datasets/{}/**/images/**/*.*'.format(self.dataset_dir + '/trainB'))
         else:
             raise Exception('--which_direction must be AtoB or BtoA')
 
@@ -500,4 +495,32 @@ class cyclegan(object):
             image_path = os.path.join(args.test_dir,'{0}_{1}'.format(args.which_direction, os.path.basename(sample_file)))
             fake_img,refine_fake,rec_img,cycle_img = self.sess.run([out_var,refine_var,rec_var,cycle_var], feed_dict={in_var: sample_image})
             merge=np.concatenate([sample_image,fake_img,refine_fake,rec_img,cycle_img],axis=2)
+            save_images(merge, [1, 1], image_path)
+
+    def generate_refine_fake(self, args, sample_files, sample_labels, direction):
+        """Test cyclegan"""
+        init_op = tf.global_variables_initializer()
+        self.sess.run(init_op)
+
+        if self.load(args.checkpoint_dir):
+            print(" [*] Load SUCCESS")
+        else:
+            print(" [!] Load failed...")
+        out_var,refine_var, in_var,rec_var,cycle_var = (self.testB,self.refine_testB, self.test_A,self.rec_testA,self.rec_cycle_A) if direction == 'AtoB' else (
+            self.testA,self.refine_testA, self.test_B,self.rec_testB,self.rec_cycle_B)
+        for i, sample_file in enumerate(sample_files):
+            print('Processing image: ' + sample_file)
+            sample_image = [load_test_data(sample_file, args.fine_size)]
+            sample_image = np.array(sample_image).astype(np.float32)
+#             image_path = os.path.join(args.test_dir,'{0}_{1}'.format(args.which_direction, os.path.basename(sample_file)))
+            image_path = sample_file.replace("erae","erae_fake")
+            label_path = sample_labels[i].replace("erae","erae_fake")
+            dirname = os.path.dirname(image_path)
+            label_dirname = os.path.dirname(label_path)
+            os.makedirs(dirname, exist_ok = True)
+            os.makedirs(label_dirname, exist_ok = True)
+            copyfile(sample_labels[i], label_path)
+            fake_img,refine_fake,rec_img,cycle_img = self.sess.run([out_var,refine_var,rec_var,cycle_var], feed_dict={in_var: sample_image})
+            merge=np.concatenate([refine_fake],axis=2)
+#             merge=np.concatenate([sample_image,fake_img,refine_fake,rec_img,cycle_img],axis=2)
             save_images(merge, [1, 1], image_path)

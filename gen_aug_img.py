@@ -6,6 +6,7 @@ tf.get_logger().setLevel('INFO')
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 from model import cyclegan
 from ops import *
+from glob import glob
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('--dataset_dir', dest='dataset_dir', default='alderley', help='path of the dataset')
 parser.add_argument('--epoch', dest='epoch', type=int, default=20, help='# of epoch')
@@ -38,6 +39,27 @@ parser.add_argument('--max_size', dest='max_size', type=int, default=50,help='ma
 args = parser.parse_args()
 os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
 def main(_):
+    raw_label_paths = glob("/home/ubuntu/ForkGAN/datasets/erae/**/**/**/labels/**/*.*")
+    raw_label_paths.sort()
+    labelled_imgs_paths = []
+    for p in raw_label_paths:
+        tmp = p.replace("txt","jpeg")
+        tmp = tmp.replace("labels","images")
+        labelled_imgs_paths.append(tmp)
+
+    night_img_paths = []
+    day_img_paths = []
+    night_label_paths = []
+    day_label_paths = []
+    for i, p in enumerate(labelled_imgs_paths):
+        tmp_i = int(p.split("/")[-4].split("_")[1])
+        if tmp_i > 11500:
+            night_img_paths.append(p)
+            night_label_paths.append(raw_label_paths[i])
+        else:
+            day_img_paths.append(p)
+            day_label_paths.append(raw_label_paths[i])
+
     if not os.path.exists(args.checkpoint_dir):
         os.makedirs(args.checkpoint_dir)
     if not os.path.exists(args.sample_dir):
@@ -49,7 +71,7 @@ def main(_):
     with tf.Session(config=tfconfig) as sess:
         model = cyclegan(sess, args)
         show_all_variables()
-        model.train(args) if args.phase == 'train' \
-            else model.test(args)
+        model.generate_refine_fake(args, night_img_paths, night_label_paths, "AtoB")
+        model.generate_refine_fake(args, day_img_paths, day_label_paths, "BtoA")
 if __name__ == '__main__':
     tf.app.run()
